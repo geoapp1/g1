@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		
+		
+		
+		<title>G1</title>
+		
+		<meta charset="UTF-8">
+		
+		<!-- Next meta for mobile apps -->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+		
+		
+		<!-- Font awesome -->
+		
+		<!-- <link rel="stylesheet" type="text/css" href="css/g1.css"> -->
+		<style>
+		* {
+			padding: 0;
+			margin: 0;
+		}
+
+		body {
+			background: #C8C8C8;
+			color: black;
+			font: 10pt Helvetica, Arial, Sans Serif;
+		}
+
+		h1 {
+			color: black;
+			font:  12pt Helvetica, Arial, Sans Serif;
+			font-weight: bold;
+		}
+
+		h2 {
+			color: black;
+			font:  10pt Helvetica, Arial, Sans Serif;
+			font-weight: bold;	
+		}
+
+		html, body {
+			height: 100vh; /* height equals viewport height */
+			width: 100vw; /* width equals viewport width */
+		}
+
+		.g1 {
+			height: 100vh; /* height equals viewport height */	
+			display: flex; /* Flexbox approach, flexbox - flexible boxes */
+			flex-direction: column; 
+		}
+
+		#map {
+			width: 100%;
+			flex: 1; /*Fills all available space */
+		}
+
+		#menu {
+			height: 56px;
+			width: 100%;
+			background-color: cyan;
+			text-align: center;
+			line-height: 56px;
+			font-size: 40px;
+			display: flex; 
+			justify-content: space-evenly;
+			align-items: center;	
+		}
+
+		/*contenedor dentro del cual hay una caja de texto*/
+		#point-id {
+			position: fixed;
+			bottom: 56px;
+			height: 40px;
+			width: 100%;
+			background-color: transparent;
+			display: flex;
+			align-items: center;
+			text-align: center;
+		}
+
+		/*caja de texto*/
+		#point-id-text {
+			height: 30px;
+			line-height: 30px;
+			vertical-align: middle;
+			border-radius: 10px;
+			width: 90%;
+			padding-left: 10px;
+
+		}
+		</style>
+		<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css">
+		
+	</head>
+	
+	<body>
+		<div class="g1">
+			<div id="map">
+				<p id="location-text"></p>
+				
+			</div>
+			<div id="menu">			
+				<div style="cursor: pointer;" class="fas fa-map-marker-alt" onclick="toggleLocation()"></div> <!--Icono-->
+				<div style="cursor: pointer;" class="fas fa-keyboard" 		onclick="toggleIdBox()"></div>
+				<div style="cursor: pointer;" class="fas fa-plus-circle" 	onclick="storePoint()"></div>
+				<div style="cursor: pointer;" class="fas fa-times-circle"	onclick="clearMemory()"></div>
+				<span style="display: inline-block; width: 40px;"></span>
+				<div style="cursor: pointer;" class="fas fa-save" 			onclick="saveGeoJSON()"></div>
+			</div>
+		
+		</div>
+		
+		<!-- Text box for point IDs -->
+		
+		<div id="point-id" style="display: none; ">
+			
+			<input type="text" id="point-id-text">
+		
+		</div>
+		
+		<script>
+		//Global variables
+
+		var n = 0; //Point counter 
+
+		var pointLng	= null; //Last collected point
+		var pointLtd	= null; 
+		var pointAcc	= null;
+
+		var pointArray = []; //memory storage for all collected points
+
+
+
+		var watchId = null; //defaults to null
+
+		// If watchId == null: device not using geolocation 
+		// If watchId != null: device using geolocation (and consuming battery) 
+
+		var locationOptions = {
+			enableHighAccuracy: true, // Alloes GNSS positioning if available
+			timeout: 6000            // Cancels execution after 6 seconds	
+
+		}
+
+		// locationOptions as a global variable
+
+
+
+		var pointId     = document.getElementById("point-id");
+		var pointIdText = document.getElementById("point-id-text");
+
+
+		function toggleIdBox() {
+	
+			if (pointId.style.display == "none"){
+				pointId.style.display = "block"; //Text box is visible
+				pointIdText.focus(); //poner para que se escriba automatico en la barra
+		
+			} else if (pointId.style.display == "block"){
+				pointId.style.display = "none"; //Text box is invisble
+	
+			}
+
+		}
+
+
+
+		function storePoint() {
+			//alert("storePoint()");
+	
+			// Checkcoordinates are not null
+	
+			if (pointLng === null || pointLtd === null || pointAcc === null) {
+				return;
+			}
+			// == check value of variable
+			// === checks value and type of variable 
+	
+			// || is the OR logical operator 
+			// && is the AND logical operator
+	
+			// If we reach this point, there are coordinates to save
+	
+			// Counter in the form "0000", "0001", "0002",... 
+	
+			nid = ("0000" + n.toString()).substr(-4)
+	
+			console.log(nid);
+	
+			//Point ID
+	
+			if (pointIdText.value === "") {
+				var pointIdValue = null;
+			} else {
+				var pointIdValue = pointIdText.value;		
+			}	
+	
+			console.log(pointIdValue);
+	
+			// Create a new GeoJSON feature
+	
+			var feature = {
+				type: "Feature",
+				id: nid,
+				geometry: {
+					type: "Point",
+					coordinates: [pointLng, pointLtd]
+				},
+				properties: {
+					sid: pointIdValue, //sid se refiere a string id
+					accuracy: pointAcc
+				}
+			}
+			
+			// Append feature to point array		
+			pointArray.push(feature);
+	
+	
+			//Reset ID text box
+	
+			pointIdText.value = "";
+	
+			//Hide text box, if  necessary
+			if (pointId.style.display == "block") {
+				pointId.style.display = "none";
+			}
+	
+	
+			//Update counter
+			n++;
+	
+		}
+
+
+
+		function clearMemory() {
+			//alert("clearMemory()");
+	
+	
+			// Check there are data to remove
+			if (pointArray.length == 0) {
+				alert("There are no data collected yet.");
+				return;	
+			}
+
+			//Clear memory
+			//confirm es cuadro de dialogo con dos botones; aceptar y cancelar
+			var clearMem = confirm ("All collected data will be lost. Proceed?");
+	
+			console.log(clearMem);
+	
+			if (!clearMem) {
+		
+				//This operator means NOT: !clearMem = NOT clearMem 
+				// If clearMem = true, then !clearMem = false
+				// If clearMem = fale, then !clearMem = true
+		
+				return;
+		
+				//This return happends when we cancel 
+			}
+	
+			//If we click "confirm"
+	
+			pointArray = [];
+	
+			// Reset pointArray to empty array 
+	
+		}
+
+
+		function saveGeoJSON() {
+	
+			//Check there are data
+	
+			if (pointArray.length == 0) {
+				alert("There are no data collected yet.");
+				return false;
+			}
+
+			// Create GeoJSON contents 
+	
+			var geoj = {type: "FeatureCollection", features: pointArray}
+			
+			//alert("saveJSON()");
+	
+			// MIME (multipurpuse internet mail extension) for JSON datasets
+			var mime = "data:application/json;charset=utf-8,";
+	
+			// Create invisible link with <a>
+	
+			var saveLink = document.createElement("a");
+	
+			// Set attributes
+	
+			saveLink.setAttribute("href", mime+encodeURI(JSON.stringify(geoj, null, 4)));
+			saveLink.setAttribute("download", "g1.json");
+	
+			//Append link
+	
+			document.body.appendChild(saveLink);
+	
+			//Click on link
+	
+			saveLink.click();
+
+			// Remove link
+	
+			document.body.removeChild(saveLink);
+	
+			//Reset values 
+	
+			n = 0;
+			pointArray = [];
+	
+		}
+
+
+		function toggleLocation() {
+	
+			//alert("toggleLocation()");
+	
+			//Check browser provides geolocation service
+			//accesing to navigator.geolocation object
+	
+			if (!navigator.geolocation) {
+				return;
+			}
+		
+				//alert("Geolocation supported.");
+		
+				//Get geolocation in watch mode
+		
+			if (watchId === null) {
+			
+				//Start geolocation
+				watchId = navigator.geolocation.watchPosition(locationSuccess, locationError, locationOptions);
+			
+			
+				// Change the color of icon
+				document.getElementsByClassName("fas fa-map-marker-alt")[0].style.color = "red";
+			
+			} else {
+			
+				//Stop geolocation
+				navigator.geolocation.clearWatch(watchId);
+				watchId = null;
+		
+				//Change the color of icon
+				document.getElementsByClassName("fas fa-map-marker-alt")[0].style.color = "black";
+			
+			}
+		
+		
+		
+				//locationSuccess: is a function that is run in the event of geolocation success. La creamos nosotros la funcion.
+				//locationError: is a function that is run in the event of geolocation error.
+				//locatioOptions: is an object with config options
+		
+				// It is the user who creates these 3 items
+		
+				//locationSuccess is mandatory!!
+				//locationError and locationOptions are optional
+		
+		
+		}
+
+
+
+
+		function locationSuccess(position) {
+
+			var locText = document.getElementById("location-text");
+			//alert("Geolocation succes!");
+	
+			//HTML provides a parameter called position
+			//This parameter contains geolocation info 
+	
+			pointLng = position.coords.longitude;
+	
+			//"coords" is an attribute of object "position"
+			//"longitude" is an attribute of "coords"
+	
+			pointLtd = position.coords.latitude;
+			pointAcc = position.coords.accuracy;
+	
+
+	
+			locText.innerHTML = pointLtd.toFixed(8) + "&nbsp;&nbsp;&nbsp;" +
+								pointLng.toFixed(8) + "&nbsp;&nbsp;&nbsp;[" +
+								pointAcc.toFixed(2) + "]";
+	
+			console.log(pointLng, pointLtd, pointAcc);
+
+			
+		}
+
+
+		function locationError(error) {
+			//alert("Geolocation failed");
+	
+			//Switch is equivalent to a number of "ifs"
+			switch(error.code) { 
+	
+				case error.PERMISSION_DENIED: 
+					alert("Geolocation request denied.");
+					break;
+				case error.POSITION_UNAVAILABLE:
+					alert("position unavailable.");
+					break;
+				case error.TIMEOUT:
+					alert("Geolocation request timed out.");
+					break;
+				case error.UNKNOWN_ERROR:
+					alert("Unknown geolocation error.");
+					break;
+			}
+	
+		}
+		
+		</script>		
+		
+		<!-- <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.6.2/proj4.js">
+		</script>-->		
+		
+
+
+
+		
+		
+	</body>
+	
+</html>
+
